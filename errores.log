@@ -1,0 +1,9 @@
+Tipo: <class 'ValueError'> - Mensaje: invalid literal for int() with base 10: 'gi'
+Tipo: <class 'ValueError'> - Mensaje: invalid literal for int() with base 10: 'po'
+Tipo: <class 'ValueError'> - Mensaje: invalid literal for int() with base 10: 'p'
+Tipo: <class 'ValueError'> - Mensaje: El nombre ingresado no es v�lido. Debe contener solo letras.
+
+Tipo: <class 'ValueError'> - Mensaje: El nombre ingresado no es valido. No debe contener numeros.
+Tipo: <class 'ValueError'> - Mensaje: El nombre ingresado no es valido. No debe contener numeros.
+Tipo: <class 'ValueError'> - Mensaje: Los goles no pueden ser negativos.
+Tipo: <class 'ValueError'> - Mensaje: Los goles no pueden ser negativos.

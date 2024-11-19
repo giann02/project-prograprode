@@ -1,44 +1,65 @@
 import random
+import re
 from functools import reduce
 
 golesPosibles = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 probabilidadGoles = [0.25, 0.3, 0.2, 0.15, 0.05, 0.03, 0.01, 0.005, 0.002, 0.001]
+
+def registrarExcepcion(e):
+    """ Función para registrar excepciones en un archivo de log """
+    try:
+        archivo = open('errores.log', 'a')
+        try:
+            error = f"Tipo: {type(e)} - Mensaje: {str(e)}\n"
+            print(f"Ocurrió un error: {error}")
+            archivo.write(error)
+        finally:
+            archivo.close()
+    except Exception as logError:
+        print(f"Error al escribir en el log: {logError}")
+
+
 def ingresarPartidos():
     """
-    Permite al administrador ingresar los detalles de una lista de partidos.
-    Se solicita que ingrese la cantidad de partidos y luego para cada uno
-    se pide el nombre del equipo local y visitante. Los partidos se almacenan como 
-    diccionarios con los equipos y los goles, inicialmente en 0.
+    Lee los partidos desde un archivo y los almacena en una lista de diccionarios.
+    Cada línea del archivo representa un partido con el formato 'EquipoLocal,EquipoVisitante'.
     
     Returns:
-        list: Lista de diccionarios, donde cada uno representa un partido.
-        partidos = [
-            {"homeTeam": "Boca", "awayTeam": "River", "homeScore": 0, "awayScore": 0},
-            {"homeTeam": "Ferro", "awayTeam": "River", homeScore: 0, "awayScore": 0}
+        list: Lista de diccionarios con los detalles de cada partido.
+        [
+            {"homeTeam": "Boca", "awayTeam": "River", "predHomeScore": -1, "predAwayScore": -1},
+            {"homeTeam": "Ferro", "awayTeam": "River", "predHomeScore": -1, "predAwayScore": -1},
         ]
     """
-    print("VISTA ADMINISTRADOR")
-    while True:
-        try:
-            cantidadPartidos = int(input("Ingrese la cantidad de partidos: "))
-            if cantidadPartidos <= 0:
-                raise ValueError("Debe ingresar un número positivo")
-            break
-        except ValueError as e:
-            print(f"Error: {e}. Por favor ingrese un número válido.")
-    
     partidos = []
-    for _ in range(cantidadPartidos):
-        homeTeam = input("Nombre del equipo local: ")
-        awayTeam = input("Nombre del equipo visitante: ")
-        partido = {
-            "homeTeam": homeTeam,
-            "awayTeam": awayTeam,
-            "homeScore": -1,
-            "awayScore": -1,
-        }
-        partidos.append(partido)
+    
+    try:
+        # Abre el archivo y procesa cada linea
+        archivo = open("partidos.txt", "r")
+        for linea in archivo:
+            equipos = linea.strip().split(",")  # Elimina espacios al principio, final y saltos de linea, y separa por coma
+            if len(equipos) == 2:  # Verifica que haya exactamente dos equipos
+                partido = {
+                    "homeTeam": equipos[0],
+                    "awayTeam": equipos[1],
+                    "homeScore": -1,
+                    "awayScore": -1,
+                }
+                partidos.append(partido)
+            else:
+                print("Línea con formato incorrecto:", linea)
+        archivo.close()
+    
+    except FileNotFoundError as e:
+        registrarExcepcion(e)
+        print("Intente nuevamente.")
+    
+    except Exception as e:
+        registrarExcepcion(e)
+        print("Intente nuevamente.")
+    
     return partidos
+
 
 
 def resultadoUsuarios(partidos):
@@ -51,6 +72,10 @@ def resultadoUsuarios(partidos):
     
     Args:
         partidos (list): Lista de diccionarios que representan los partidos.
+        partidosConResultado = [
+            {"homeTeam": "Boca", "awayTeam": "River", "homeScore": 1, "awayScore": 1},
+            {"homeTeam": "Ferro", "awayTeam": "River", homeScore: 2, "awayScore": 0}
+        ]
     
     Returns:
         dict: Diccionario con las predicciones de los usuarios.
@@ -67,45 +92,73 @@ def resultadoUsuarios(partidos):
     """
     print("VISTA USUARIO \n")
     usuarioResultados = {}
-    nombreUsuario = input("Ingrese el nombre del usuario ('fin' para salir): ").lower()
-    while nombreUsuario != 'fin':
-        if nombreUsuario in usuarioResultados:
-            print("El nombre ya ha sido ingresado.")
-            nombreUsuario = input("Ingrese otro nombre o 'fin' para salir: ").lower()
+    
+    while True:
+        nombreUsuario = input("Ingrese el nombre del usuario ('fin' para salir no son validos los numeros): ").lower()
+        if nombreUsuario == 'fin':
+            break
+        
+        try:
+            if nombreUsuario in usuarioResultados:
+                raise ValueError("El nombre ya ha sido ingresado.")
+            
+            if not validarNombre(nombreUsuario):
+                raise ValueError("El nombre ingresado no es valido. No debe contener numeros.")
+            
+            usuarioResultados[nombreUsuario] = []
+            for partido in partidos:
+                print(f"Partido: {partido['homeTeam']} vs {partido['awayTeam']}")
+                # Manejo de excepciones para los goles
+                while True:
+                    try:
+                        predHomeScore = int(input(f"Ingrese goles de {partido['homeTeam']}: "))
+                        if predHomeScore < 0:
+                            raise ValueError("Los goles no pueden ser negativos.")
+                        break
+                    except ValueError as e:
+                        registrarExcepcion(e)
+                        print("Intente nuevamente.")
+                
+                while True:
+                    try:
+                        predAwayScore = int(input(f"Ingrese goles de {partido['awayTeam']}: "))
+                        if predAwayScore < 0:
+                            raise ValueError("Los goles no pueden ser negativos.")
+                        break
+                    except ValueError as e:
+                        registrarExcepcion(e)
+                        print("Intente nuevamente.")
+
+                usuarioResultados[nombreUsuario].append({
+                    "homeTeam": partido['homeTeam'],
+                    "awayTeam": partido['awayTeam'],
+                    "predHomeScore": predHomeScore,
+                    "predAwayScore": predAwayScore,
+                })
+        except ValueError as e:
+            registrarExcepcion(e)
             continue
         
-        usuarioResultados[nombreUsuario] = []
-        for partido in partidos:
-            print(f"Partido: {partido['homeTeam']} vs {partido['awayTeam']}")
-
-            # Manejo de excepciones para los goles
-            while True:
-                try:
-                    predHomeScore = int(input(f"Ingrese goles de {partido['homeTeam']}: "))
-                    if predHomeScore < 0:
-                        raise ValueError("Los goles no pueden ser negativos.")
-                    break
-                except ValueError as e:
-                    print(f"Error: {e}. Intente nuevamente.")
-            
-            while True:
-                try:
-                    predAwayScore = int(input(f"Ingrese goles de {partido['awayTeam']}: "))
-                    if predAwayScore < 0:
-                        raise ValueError("Los goles no pueden ser negativos.")
-                    break
-                except ValueError as e:
-                    print(f"Error: {e}. Intente nuevamente.")
-
-            usuarioResultados[nombreUsuario].append({
-                "homeTeam": partido['homeTeam'],
-                "awayTeam": partido['awayTeam'],
-                "predHomeScore": predHomeScore,
-                "predAwayScore": predAwayScore,
-            })
-        
-        nombreUsuario = input("Ingrese el nombre del usuario ('fin' para salir): ").lower()
     return usuarioResultados
+
+def validarNombre(nombre):
+    """
+    Verifica que el nombre ingresado no sea un número y que sea valido (permitiendo letras, tildes, diéresis y espacios 
+    entre las palabras, pero no permitiendo solo espacios ni nombres vacíos).
+    
+    Args:
+        nombre (str): El nombre ingresado por el usuario.
+    
+    Returns:
+        bool: True si el nombre es valido, False si es un nombre invalido.
+    """
+    # La expresión regular verifica si el nombre contiene letras (incluyendo tildes y diéresis)
+    # y al menos un espacio entre palabras, pero no permite nombres con solo espacios.
+    if re.match("^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+(?:[ ]+[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+)*$", nombre):
+        return True
+    else:
+        return False
+
 
 def generarResultadosAleatorios(partidos):
     """
@@ -153,19 +206,19 @@ def calcularPuntuaciones(usuarioResultados, partidos):
             golesVisitanteReal = partidos[i]['awayScore']
             if golesLocalUsuario == golesLocalReal and golesVisitanteUsuario == golesVisitanteReal:
                 puntuacion += 3
-                print(f"{usuario} adivinó el resultado exacto en el partido de {partidos[i]['homeTeam']} y {partidos[i]['awayTeam']}")
+                print(f"{usuario.title()} adivinó el resultado exacto en el partido de {partidos[i]['homeTeam']} y {partidos[i]['awayTeam']}")
                 print("Suma 3 puntos \n")
             elif (golesLocalUsuario > golesVisitanteUsuario) and (golesLocalReal > golesVisitanteReal):
                 puntuacion += 1
-                print(f"{usuario} adivinó el resultado en el partido de {partidos[i]['homeTeam']} y {partidos[i]['awayTeam']}")
+                print(f"{usuario.title()} adivinó el resultado en el partido de {partidos[i]['homeTeam']} y {partidos[i]['awayTeam']}")
                 print("Suma 1 punto \n")
             elif (golesLocalUsuario < golesVisitanteUsuario) and (golesLocalReal < golesVisitanteReal):
                 puntuacion += 1
-                print(f"{usuario} adivinó el resultado en el partido de {partidos[i]['homeTeam']} y {partidos[i]['awayTeam']}")
+                print(f"{usuario.title()} adivinó el resultado en el partido de {partidos[i]['homeTeam']} y {partidos[i]['awayTeam']}")
                 print("Suma 1 punto \n")
             elif (golesLocalUsuario == golesVisitanteUsuario) and (golesLocalReal == golesVisitanteReal):
                 puntuacion += 1
-                print(f"{usuario} adivinó el resultado en el partido de {partidos[i]['homeTeam']} y {partidos[i]['awayTeam']}")
+                print(f"{usuario.title()} adivinó el resultado en el partido de {partidos[i]['homeTeam']} y {partidos[i]['awayTeam']}")
                 print("Suma 1 punto \n")
         puntuaciones.append((usuario, puntuacion))
     return puntuaciones
@@ -204,7 +257,7 @@ def mostrarNombreGanadores(puntuacionesOrdenadas):
         else:
             print("El ganador es: ")
         for ganador in nombreGanadores:
-                print(ganador)
+                print(ganador.title())
     else:
         print("Nadie adivinó el resultado de ningún partido :( \n")
 
@@ -212,6 +265,10 @@ def mostrarNombreGanadores(puntuacionesOrdenadas):
 def mostrarTop3(puntuacionesOrdenadas):
     """
     Muestra los primeros 3 lugares de la tabla de posiciones.
+    
+    Args:
+        list: Lista de tuplas ordenada de mayor a menor puntuación.
+        puntuaciones = [("lucas",3),("maria",1)]
     """
     print("Top 3 en la Tabla de Posiciones")
     print("---------------------")
@@ -220,6 +277,26 @@ def mostrarTop3(puntuacionesOrdenadas):
     for puntuacion in puntuacionesOrdenadas[:3]:  # Se usa rebanado para limitar los primeros 3.
         print(puntuacion[0].title() + " | " + str(puntuacion[1]))
 
+def mostrarUltimos3Recursivo(puntuacionesOrdenadas):
+    """
+    Muestra recursivamente las últimas 3 posiciones de la tabla de puntuaciones.
+    
+    Args:
+        list: Lista de tuplas ordenada de mayor a menor puntuación.
+        puntuaciones = [("lucas",3),("maria",1)]
+    """
+    
+    if len(puntuacionesOrdenadas) == 3:  # Caso base: si quedan 3 elementos, se imprimen.
+        print("Últimos 3 en la Tabla de Posiciones")
+        print("---------------------")
+        print("Usuario | Puntos")
+        print("---------------------")
+        for usuario, puntos in puntuacionesOrdenadas:
+            print(f"{usuario.title()} | {puntos}")
+    else:
+        # Llamada recursiva eliminando el primer elemento hasta que queden 3.
+        mostrarUltimos3Recursivo(puntuacionesOrdenadas[1:])
+
 def mostrarTablaDePosiciones(puntuacionesOrdenadas):
     """
     Muestra la tabla de posiciones en formato de texto si el usuario quiere.
@@ -227,7 +304,7 @@ def mostrarTablaDePosiciones(puntuacionesOrdenadas):
     Args:
         puntuacionesOrdenadas (list): Lista de tuplas con los usuarios y sus puntuaciones, ordenada de mayor a menor.
     """
-    decision = input("Desea ver la tabla de posiciones completa y la cantidad de puntos totales? (Ingrese la palabra 'si' o 'no')").lower()
+    decision = input("Desea ver la tabla de posiciones completa y la cantidad de puntos totales? (Ingrese la palabra 'si' o 'no'): ").lower()
     if decision == "si":
         print("Tabla de Posiciones")
         print("---------------------")
@@ -236,6 +313,7 @@ def mostrarTablaDePosiciones(puntuacionesOrdenadas):
         for puntuacion in puntuacionesOrdenadas:
             print(puntuacion[0].title() + " | " + str(puntuacion[1]))
         mostrarTotalDePuntuaciones(totalPuntuaciones)
+    print("Fin del programa")
 
 def calcularTotalPuntos(puntuaciones):
     """
@@ -243,6 +321,7 @@ def calcularTotalPuntos(puntuaciones):
 
     Args:
         puntuaciones (list): Lista de tuplas donde cada tupla contiene el usuario y su puntuación.
+        puntuaciones = [("lucas",3),("maria",1)]
 
     Returns:
         int: El total de puntos acumulados por todos los usuarios.
@@ -256,19 +335,19 @@ partidos = ingresarPartidos()
 
 usuariosResultados = resultadoUsuarios(partidos)
 
-partidosConResultado = generarResultadosAleatorios(partidos)
+if len(usuariosResultados) > 0:
+    partidosConResultado = generarResultadosAleatorios(partidos)
 
-puntuaciones = calcularPuntuaciones(usuariosResultados, partidosConResultado)
+    puntuaciones = calcularPuntuaciones(usuariosResultados, partidosConResultado)
 
-puntuacionesOrdenadas = armarTablaDePosicionesDescendente(puntuaciones)
+    puntuacionesOrdenadas = armarTablaDePosicionesDescendente(puntuaciones)
 
-totalPuntuaciones = calcularTotalPuntos(puntuaciones)
+    totalPuntuaciones = calcularTotalPuntos(puntuaciones)
 
-mostrarNombreGanadores(puntuacionesOrdenadas)
+    mostrarNombreGanadores(puntuacionesOrdenadas)
 
-mostrarTop3(puntuacionesOrdenadas)
+    mostrarTop3(puntuacionesOrdenadas)
 
-mostrarTablaDePosiciones(puntuacionesOrdenadas)
+    mostrarUltimos3Recursivo(puntuacionesOrdenadas)
 
-
-
+    mostrarTablaDePosiciones(puntuacionesOrdenadas)
