@@ -1,0 +1,16 @@
+Tabla de Posiciones
+---------------------
+Usuario | Puntos
+---------------------
+Rodri | 4
+Dani | 3
+Leonel | 3
+Tincho | 3
+Gian | 2
+Andres | 2
+Tucho | 1
+Tomi | 0
+Pablo | 0
+Javier | 0
+
+Total de puntos: 18

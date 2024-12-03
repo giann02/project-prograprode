@@ -18,7 +18,6 @@ def registrarExcepcion(e):
     except Exception as logError:
         print(f"Error al escribir en el log: {logError}")
 
-
 def ingresarPartidos():
     """
     Lee los partidos desde un archivo y los almacena en una lista de diccionarios.
@@ -60,8 +59,6 @@ def ingresarPartidos():
     
     return partidos
 
-
-
 def resultadoUsuarios(partidos):
     """
     Permite a los usuarios ingresar sus predicciones para una lista de partidos.
@@ -94,7 +91,7 @@ def resultadoUsuarios(partidos):
     usuarioResultados = {}
     
     while True:
-        nombreUsuario = input("Ingrese el nombre del usuario ('fin' para salir no son validos los numeros): ").lower()
+        nombreUsuario = input("Ingrese el nombre del usuario ('fin' para salir no son validos los numeros ni un nombre vacio): ").lower()
         if nombreUsuario == 'fin':
             break
         
@@ -159,27 +156,31 @@ def validarNombre(nombre):
     else:
         return False
 
-
 def generarResultadosAleatorios(partidos):
     """
     Asigna resultados aleatorios teniendo en cuenta los goles con mayor posibilidad 
-    a cada partido y los muestra por pantalla.
+    a cada partido, los imprime y los guarda en un archivo.
     
     Args:
         partidos (list): Lista de diccionarios que representan los partidos.
     
     Returns:
         list: La lista de partidos con los resultados asignados.
-        partidosConResultado = [
-            {"homeTeam": "Boca", "awayTeam": "River", "homeScore": 1, "awayScore": 1},
-            {"homeTeam": "Ferro", "awayTeam": "River", homeScore: 2, "awayScore": 0}
-        ]
     """
-    for partido in partidos:
-        partido['homeScore'] = random.choices(golesPosibles,probabilidadGoles)[0]
-        partido['awayScore'] = random.choices(golesPosibles,probabilidadGoles)[0]
-        print(f"El Partido: {partido['homeTeam']} vs {partido['awayTeam']} tuvo el resultado de: \n")
-        print(f"{partido['homeTeam']} {partido['homeScore']} - {partido['awayScore']} {partido['awayTeam']} \n")
+    try:
+        archivo = open("resultados_partidos.txt", "w")
+        for partido in partidos:
+            partido['homeScore'] = random.choices(golesPosibles, probabilidadGoles)[0]
+            partido['awayScore'] = random.choices(golesPosibles, probabilidadGoles)[0]
+            resultado = f"{partido['homeTeam']} {partido['homeScore']} - {partido['awayScore']} {partido['awayTeam']}\n"
+            print(f"El Partido: {partido['homeTeam']} vs {partido['awayTeam']} tuvo el resultado de:")
+            print(resultado.strip())  
+            archivo.write(resultado) 
+            print("Los resultados se guardaron en 'resultados_partidos.txt'.")
+    except Exception as e:
+        registrarExcepcion(e)
+    finally:
+        archivo.close()
     return partidos
 
 def calcularPuntuaciones(usuarioResultados, partidos):
@@ -264,7 +265,7 @@ def mostrarNombreGanadores(puntuacionesOrdenadas):
 
 def mostrarTop3(puntuacionesOrdenadas):
     """
-    Muestra los primeros 3 lugares de la tabla de posiciones.
+    Muestra los primeros 3 lugares de la tabla de posiciones y los guarda en un archivo.
     
     Args:
         list: Lista de tuplas ordenada de mayor a menor puntuación.
@@ -274,8 +275,18 @@ def mostrarTop3(puntuacionesOrdenadas):
     print("---------------------")
     print("Usuario | Puntos")
     print("---------------------")
-    for puntuacion in puntuacionesOrdenadas[:3]:  # Se usa rebanado para limitar los primeros 3.
-        print(puntuacion[0].title() + " | " + str(puntuacion[1]))
+    
+    try:
+        archivo = open("top3_posiciones.txt", "w")
+        for puntuacion in puntuacionesOrdenadas[:3]: 
+            linea = f"{puntuacion[0].title()} | {puntuacion[1]}"
+            print(linea) 
+            archivo.write(linea + "\n") 
+        print("\nEl Top 3 se guardó en 'top3_posiciones.txt'.\n")
+    except Exception as e:
+        registrarExcepcion(e)
+    finally:
+        archivo.close()
 
 def mostrarUltimos3Recursivo(puntuacionesOrdenadas):
     """
@@ -287,42 +298,75 @@ def mostrarUltimos3Recursivo(puntuacionesOrdenadas):
     """
     
     if len(puntuacionesOrdenadas) == 3:  # Caso base: si quedan 3 elementos, se imprimen.
-        print("Últimos 3 en la Tabla de Posiciones")
-        print("---------------------")
-        print("Usuario | Puntos")
-        print("---------------------")
-        for usuario, puntos in puntuacionesOrdenadas:
-            print(f"{usuario.title()} | {puntos}")
+        try:
+            archivo = open("ultimas3_posiciones.txt", "w")
+            print("Últimos 3 en la Tabla de Posiciones")
+            print("---------------------")
+            print("Usuario | Puntos")
+            print("---------------------")
+            for usuario, puntos in puntuacionesOrdenadas:
+                linea = f"{usuario.title()} | {puntos}"
+                print(linea)
+                archivo.write(linea + "\n")
+            print("\Los ultimos 3 se guardaron en 'ultimas3_posiciones.txt'.\n")
+        except Exception as e:
+            registrarExcepcion(e)
+        finally:
+            archivo.close()
     else:
         # Llamada recursiva eliminando el primer elemento hasta que queden 3.
         mostrarUltimos3Recursivo(puntuacionesOrdenadas[1:])
 
+
 def mostrarTablaDePosiciones(puntuacionesOrdenadas):
     """
-    Muestra la tabla de posiciones en formato de texto si el usuario quiere.
+    Muestra la tabla de posiciones en formato de texto y la guarda en un archivo si el usuario quiere.
 
     Args:
         puntuacionesOrdenadas (list): Lista de tuplas con los usuarios y sus puntuaciones, ordenada de mayor a menor.
     """
-    decision = input("Desea ver la tabla de posiciones completa y la cantidad de puntos totales? (Ingrese la palabra 'si' o 'no'): ").lower()
+    decision = input("¿Desea ver la tabla de posiciones completa y la cantidad de puntos totales? (Ingrese 'si' o 'no'): ").lower()
     if decision == "si":
-        print("Tabla de Posiciones")
-        print("---------------------")
-        print("Usuario | Puntos")
-        print("---------------------")
-        for puntuacion in puntuacionesOrdenadas:
-            print(puntuacion[0].title() + " | " + str(puntuacion[1]))
-        mostrarTotalDePuntuaciones(totalPuntuaciones)
+        try:
+            archivo = open("tabla_posiciones.txt", "w")
+            
+            print("Tabla de Posiciones")
+            archivo.write("Tabla de Posiciones\n")
+            
+            print("---------------------")
+            archivo.write("---------------------\n")
+            
+            print("Usuario | Puntos")
+            archivo.write("Usuario | Puntos\n")
+            
+            print("---------------------")
+            archivo.write("---------------------\n")
+            
+            # Filas de la tabla
+            for puntuacion in puntuacionesOrdenadas:
+                linea = f"{puntuacion[0].title()} | {puntuacion[1]}"
+                print(linea)  
+                archivo.write(linea + "\n") 
+            
+            # Total de puntos
+            totalPuntos = calcularTotalPuntos(puntuacionesOrdenadas)
+            totalTexto = f"\nTotal de puntos: {totalPuntos}"
+            print(totalTexto)
+            archivo.write(totalTexto + "\n")
+            
+            print("\nLa tabla de posiciones se guardó en 'tabla_posiciones.txt'.\n")
+        except Exception as e:
+            registrarExcepcion(e)
+        finally:
+            archivo.close()
     print("Fin del programa")
 
 def calcularTotalPuntos(puntuaciones):
     """
     Calcula el total de puntos acumulados por todos los usuarios.
-
     Args:
         puntuaciones (list): Lista de tuplas donde cada tupla contiene el usuario y su puntuación.
         puntuaciones = [("lucas",3),("maria",1)]
-
     Returns:
         int: El total de puntos acumulados por todos los usuarios.
     """
@@ -331,23 +375,24 @@ def calcularTotalPuntos(puntuaciones):
 def mostrarTotalDePuntuaciones(puntuaciones):
     print("El numero total de puntuaciones es de: ", puntuaciones)
 
-partidos = ingresarPartidos()
+if __name__== "__main__":
+    partidos = ingresarPartidos()
 
-usuariosResultados = resultadoUsuarios(partidos)
+    usuariosResultados = resultadoUsuarios(partidos)
 
-if len(usuariosResultados) > 0:
-    partidosConResultado = generarResultadosAleatorios(partidos)
+    if len(usuariosResultados) > 0:
+        partidosConResultado = generarResultadosAleatorios(partidos)
 
-    puntuaciones = calcularPuntuaciones(usuariosResultados, partidosConResultado)
+        puntuaciones = calcularPuntuaciones(usuariosResultados, partidosConResultado)
 
-    puntuacionesOrdenadas = armarTablaDePosicionesDescendente(puntuaciones)
+        puntuacionesOrdenadas = armarTablaDePosicionesDescendente(puntuaciones)
 
-    totalPuntuaciones = calcularTotalPuntos(puntuaciones)
+        totalPuntuaciones = calcularTotalPuntos(puntuaciones)
 
-    mostrarNombreGanadores(puntuacionesOrdenadas)
+        mostrarNombreGanadores(puntuacionesOrdenadas)
 
-    mostrarTop3(puntuacionesOrdenadas)
+        mostrarTop3(puntuacionesOrdenadas)
 
-    mostrarUltimos3Recursivo(puntuacionesOrdenadas)
+        mostrarUltimos3Recursivo(puntuacionesOrdenadas)
 
-    mostrarTablaDePosiciones(puntuacionesOrdenadas)
+        mostrarTablaDePosiciones(puntuacionesOrdenadas)
